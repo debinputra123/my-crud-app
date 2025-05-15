@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from Flask import Flask, request, jsonify, render_template
 import random
 import os
 import google.generativeai as genai
