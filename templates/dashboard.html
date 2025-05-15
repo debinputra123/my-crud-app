@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Move.AI - Respons Darurat</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-icon {
+            font-size: 2em;
+            font-weight: 700;
+            background: linear-gradient(to right, #8A2BE2, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            margin-right: 8px;
+        }
+
+        .logo-text {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #333;
+        }
+        .logo-text .ai-part { font-weight: 400; }
+
+        .nav-links a {
+            margin-left: 25px;
+            text-decoration: none;
+            color: #555;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .nav-links a:hover { color: #8A2BE2; }
+
+        .nav-cta button {
+            padding: 10px 20px;
+            background: linear-gradient(to right, #ef32d9, #89216B); /* Pink/Ungu seperti tombol "Request Demo" */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+        .nav-cta button:hover { opacity: 0.85; }
+
+        .main-container {
+            padding: 30px 40px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2em;
+            color: #333;
+            margin: 0;
+        }
+
+        .new-report-button {
+            padding: 12px 25px;
+            background-color: #8A2BE2; /* Ungu utama */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .new-report-button:hover { background-color: #7324b6; }
+
+        .case-list {
+            display: grid;
+            gap: 20px;
+            /* Untuk tampilan multi-kolom di layar besar, bisa diaktifkan nanti */
+            /* grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); */
+        }
+
+        .case-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #ccc; /* Default border color */
+        }
+
+        .case-card.priority-critical { border-left-color: #dc3545; /* Merah untuk KRITIS */ }
+        .case-card.priority-emergency { border-left-color: #fd7e14; /* Oranye untuk DARURAT */ }
+        .case-card.priority-urgent { border-left-color: #ffc107; /* Kuning untuk MENDESAK */ }
+        .case-card.priority-consult-doctor { border-left-color: #17a2b8; /* Biru muda untuk PERIKSA DOKTER */ }
+
+        .case-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .case-id {
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        .case-priority {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 600;
+            color: white;
+        }
+        .priority-critical .case-priority { background-color: #dc3545; }
+        .priority-emergency .case-priority { background-color: #fd7e14; }
+        .priority-urgent .case-priority { background-color: #ffc107; color: #333; }
+        .priority-consult-doctor .case-priority { background-color: #17a2b8; }
+
+
+        .case-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        .case-card p {
+            font-size: 0.95em;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .case-card .symptoms {
+            font-style: italic;
+            color: #444;
+        }
+
+        .case-status {
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+            color: #8A2BE2; /* Ungu untuk status */
+            font-weight: 500;
+            margin-top: 15px;
+        }
+        .case-status .processing-dot {
+            height: 8px;
+            width: 8px;
+            background-color: #8A2BE2;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: blink 1.5s infinite ease-in-out;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .case-actions button {
+            margin-top:15px;
+            margin-right: 10px;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .view-details-button {
+            background-color: #6c757d; /* Abu-abu */
+            color: white;
+        }
+        .view-details-button:hover { background-color: #5a6268;}
+        
+        .update-status-button {
+            background-color: transparent;
+            color: #007bff; /* Biru */
+            border-color: #007bff;
+        }
+        .update-status-button:hover { background-color: #007bff; color:white;}
+
+
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo-container">
+            <span class="logo-icon">M</span>
+            <span class="logo-text">Move<span class="ai-part">.AI</span></span>
+        </div>
+        <div class="nav-links">
+            <a href="#">Features</a>
+            <a href="#">How It Works</a>
+            <a href="#">Testimonials</a>
+        </div>
+        <div class="nav-cta">
+            <button type="button">Request Demo</button>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="dashboard-header">
+            <h1>Emergency Case Dashboard</h1>
+            <a href="/buat-laporan" class="new-report-button"> New Report +</a>
+            </div>
+
+        <div class="case-list">
+            <div class="case-card priority-critical">
+                <div class="case-header">
+                    <span class="case-id">Case #001</span>
+                    <span class="case-priority">CRITICAL</span>
+                </div>
+                <h3>Patient: Budi Santoso</h3>
+                <p><strong>Location:</strong> Jl. Merdeka No. 10, Jakarta Pusat</p>
+                <p class="symptoms">"Sakit dada kiri parah menjalar ke lengan, sangat sulit bernapas, keringat dingin."</p>
+                <div class="case-status">
+                    <span class="processing-dot"></span>
+                    AI Analysis: Indikasi Serangan Jantung. Ambulance Dispatched. ETA: 7 menit.
+                </div>
+                <div class="case-actions">
+                    <button class="view-details-button">Detail</button>
+                    <button class="update-status-button">Update Status</button>
+                </div>
+            </div>
+
+            <div class="case-card priority-emergency">
+                <div class="case-header">
+                    <span class="case-id">Case #002</span>
+                    <span class="case-priority">Emergency</span>
+                </div>
+                <h3>Patient: Siti Aminah</h3>
+                <p><strong>Location:</strong> Komp. Harmoni Blok C2, Bandung</p>
+                <p class="symptoms">"Jatuh dari tangga, pergelangan kaki terlihat bengkok dan bengkak, nyeri hebat."</p>
+                <div class="case-status">
+                    <span class="processing-dot"></span>
+                    AI Analysis: Kemungkinan Patah Tulang. Ambulance Dispatched. ETA: 12 menit.
+                </div>
+                 <div class="case-actions">
+                    <button class="view-details-button">Detail</button>
+                    <button class="update-status-button">Update Status</button>
+                </div>
+            </div>
+            
+            <div class="case-card priority-urgent">
+                <div class="case-header">
+                    <span class="case-id">Case #003</span>
+                    <span class="case-priority">URGENT</span>
+                </div>
+                <h3>Patient: Agus Wijaya</h3>
+                <p><strong>Location:</strong> Jl. Mawar No. 1A, Surabaya</p>
+                <p class="symptoms">"Demam tinggi sudah 2 hari tidak turun, disertai ruam merah di kulit, sedikit pusing."</p>
+                <div class="case-status">
+                    <span class="processing-dot" style="background-color: #ffc107;"></span> AI Analysis: Indikasi Infeksi Virus. Disarankan ke UGD/Klinik.
+                </div>
+                 <div class="case-actions">
+                    <button class="view-details-button">Detail</button>
+                    <button class="update-status-button">Update Status</button>
+                </div>
+            </div>
+
+            <div class="case-card priority-consult-doctor">
+                <div class="case-header">
+                    <span class="case-id"> Case #004</span>
+                    <span class="case-priority"> CONSULT_DOCTOR</span>
+                </div>
+                <h3>Patient: Rina Hartati</h3>
+                <p><strong>Location:</strong> Apartemen Sejahtera Tower B Lt. 10, Medan</p>
+                <p class="symptoms">"Batuk kering ringan sudah seminggu, tidak ada demam atau sesak napas."</p>
+                <div class="case-status">
+                    <span class="processing-dot" style="background-color: #17a2b8;"></span> AI Analysis: Gejala Saluran Napas Atas Ringan. Disarankan Konsultasi Dokter Umum.
+                </div>
+                 <div class="case-actions">
+                    <button class="view-details-button">Detail</button>
+                    <button class="update-status-button">Update Status</button>
+                </div>
+            </div>
+            </div>
+    </div>
+
+    <script>
+        // JavaScript untuk interaktivitas di masa depan (misalnya, filter, sorting, detail)
+        // Untuk saat ini, halaman ini statis.
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Dashboard Move.AI dimuat.");
+
+            // Contoh: Menambahkan event listener ke tombol "Request Demo"
+            const requestDemoButton = document.querySelector('.nav-cta button');
+            if (requestDemoButton) {
+                requestDemoButton.addEventListener('click', function() {
+                    alert('Fitur "Request Demo" akan segera hadir!');
+                });
+            }
+            
+            // Contoh: Event listener untuk tombol "Lihat Detail" (hanya simulasi)
+            document.querySelectorAll('.view-details-button').forEach(button => {
+                button.addEventListener('click', function(event) {
+                    const caseCard = event.target.closest('.case-card');
+                    const caseId = caseCard.querySelector('.case-id').textContent;
+                    alert(`Menampilkan detail untuk ${caseId}... (Fitur belum diimplementasikan)`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

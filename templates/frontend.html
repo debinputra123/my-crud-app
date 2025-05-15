@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOVE.AI - Emergency Message (Simulation)</title>
+    <link rel="icon" href="{{ url_for('static', filename='MOVEAILOGO.png') }}" type="image/png"> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOVE.AI - Emergency Message (Simulation)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding-top: 20px; padding-bottom: 20px;}
+        .container { background-color: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 100%; max-width: 700px; }
+        h1 { color: #d9534f; text-align: center; margin-bottom: 10px; font-size: 1.8em;}
+        h2 { color: #17a2b8; margin-top: 25px; margin-bottom:15px; font-size: 1.4em; border-bottom: 2px solid #17a2b8; padding-bottom: 5px;}
+        p.important-note { background-color: #fff3cd; border-left: 5px solid #ffeeba; padding: 10px; margin-bottom: 20px; font-size: 0.9em;}
+        p.security-warning { background-color: #f8d7da; border-left: 5px solid #f5c6cb; padding: 10px; margin-bottom: 20px; font-weight: bold; color: #721c24;}
+        label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="text"], textarea {
+            width: calc(100% - 24px); /* Adjusted for padding and border */
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        textarea { resize: vertical; min-height: 100px; }
+        button {
+            background-color: #d9534f;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin-top: 25px;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+        button:hover { background-color: #c9302c; }
+        button#getLocationBtn { background-color: #007bff; font-size: 0.9em; width: auto; padding: 8px 15px; margin-top: 10px;}
+        button#getLocationBtn:hover { background-color: #0056b3; }
+
+        .results { margin-top: 30px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;}
+        .results p { margin: 8px 0; line-height: 1.6; }
+        .results strong { color: #333; }
+        #map {
+            width: 100%;
+            height: 350px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            margin-top: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+        .danger-CRITICAL { color: #dc3545; font-weight: bold; font-size: 1.1em; }
+        .danger-EMERGENCY { color: #fd7e14; font-weight: bold; font-size: 1.1em; }
+        .danger-URGENT { color: #ffc107; font-weight: bold; font-size: 1.1em; } 
+        .danger-CONSULT_DOCTOR { color:rgb(23, 184, 44); font-weight: bold; font-size: 1.1em; } 
+        #loading { display: none; margin-top: 15px; color: #007bff; text-align: center; font-size: 1.1em; }
+        .location-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center;}
+        .location-inputs div { display: flex; flex-direction: column;}
+        hr { border: 0; height: 1px; background-color: #e0e0e0; margin: 25px 0; }
+    </style>
+    
+    <script async src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap&libraries=marker,routes&v=weekly">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>MOVE.AI - Emergency Message (Simulation)</h1>
+        <form id="emergencyForm">
+            <label for="name">Your Name:</label>
+            <input type="text" id="name" name="name" value=" " required>
+
+            <label for="symptoms">Symptoms:</label>
+            <textarea id="symptoms" name="symptoms" required> </textarea>
+
+            <label>Your Location:</label>
+            <div class="location-inputs">
+                <div>
+                    <label for="latitude" style="margin-top:0;">Latitude:</label>
+                    <input type="text" id="latitude" name="latitude" placeholder="Example: -6.2088">
+                </div>
+                <div>
+                    <label for="longitude" style="margin-top:0;">Longitude:</label>
+                    <input type="text" id="longitude" name="longitude" placeholder="Example: 106.8456">
+                </div>
+            </div>
+            <button type="button" id="getLocationBtn">Get My Location (Auto)</button>
+            <p style="font-size:0.8em; color: #666; margin-top: 5px;">(Allow location access if prompted. If it doesn't work automatically, please fill it in manually or use the example value of Central Jakarta which will be filled in if empty.)</p>
+
+        <hr> <div>
+            <label for="voiceLangSelect">Voice Language:</label>
+            <select id="voiceLangSelect" style="padding: 5px; margin-bottom:10px;">
+                <option value="en-US">English (US)</option>
+                <option value="id-ID">Bahasa Indonesia</option>
+                </select>
+        </div>
+        <button type="button" id="voiceCommandBtn" style="background-color: #28a745; width:auto; padding: 10px 15px; margin-right:10px;">Start Voice Input</button>
+        <span id="voiceStatus" style="font-style: italic;">Click "Start Voice Input" and speak.</span>
+        <hr> <button type="submit">Send Emergency Message</button>
+    </form>
+    <div id="loading">Processing report, please wait... <span class="spinner"></span></div>
+    
+    <script>
+        // Variabel global yang masih relevan
+        // (Variabel peta dihapus untuk saat ini)
+
+        // Elemen Form
+        const nameField = document.getElementById('name');
+        const symptomsField = document.getElementById('symptoms');
+        const latitudeField = document.getElementById('latitude');
+        const longitudeField = document.getElementById('longitude');
+        const emergencyForm = document.getElementById('emergencyForm');
+        
+        // Elemen Fitur Suara
+        const voiceCommandBtn = document.getElementById('voiceCommandBtn');
+        const voiceStatusSpan = document.getElementById('voiceStatus');
+        const voiceLangSelect = document.getElementById('voiceLangSelect');
+
+        let recognition;
+        let isRecognizing = false;
+
+        // --- LOGIKA SPEECH RECOGNITION ---
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            
+            recognition.continuous = false; // Proses setelah jeda ucapan
+            recognition.interimResults = false; // Hanya hasil final yang kita inginkan
+            recognition.lang = voiceLangSelect.value; // Ambil bahasa dari dropdown
+
+            voiceLangSelect.onchange = () => {
+                recognition.lang = voiceLangSelect.value;
+                console.log("Speech recognition language set to:", recognition.lang);
+            };
+
+            recognition.onstart = () => {
+                isRecognizing = true;
+                voiceStatusSpan.textContent = "Listening...";
+                voiceCommandBtn.textContent = "Stop Listening";
+                voiceCommandBtn.style.backgroundColor = "#ffc107"; // Warna kuning saat mendengar
+                console.log("Voice recognition started.");
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = "";
+                // Ambil transkrip dari hasil terakhir
+                if (event.results.length > 0 && event.results[event.results.length-1].length > 0) {
+                    transcript = event.results[event.results.length-1][0].transcript.trim();
+                }
+
+                console.log("Heard:", transcript);
+                voiceStatusSpan.textContent = `Heard: "${transcript}". Processing...`;
+
+                let nameFound = false;
+                let symptomsFound = false;
+
+                // Parsing nama (Contoh: "My name is Debin")
+                const nameKeywordEN = "my name is ";
+                const nameKeywordEN = "my name";
+                const nameKeywordEN = "i'm";
+                const nameKeywordID = "nama saya "; // Untuk Bahasa Indonesia
+                
+                let lowerTranscript = transcript.toLowerCase();
+
+                if (recognition.lang.startsWith('en') && lowerTranscript.startsWith(nameKeywordEN)) {
+                    let name = transcript.substring(nameKeywordEN.length).trim();
+                    // Capitalize each word
+                    nameField.value = name.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+                    nameFound = true;
+                    voiceStatusSpan.textContent = `Name set to: "${nameField.value}".`;
+                } else if (recognition.lang.startsWith('id') && lowerTranscript.startsWith(nameKeywordID)) {
+                    let name = transcript.substring(nameKeywordID.length).trim();
+                    nameField.value = name.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+                    nameFound = true;
+                    voiceStatusSpan.textContent = `Nama diatur ke: "${nameField.value}".`;
+                }
+
+                // Parsing gejala (Contoh: "I got hurt on my left chest")
+                // Untuk sekarang, jika bukan perintah nama, kita anggap sebagai gejala
+                // Atau bisa juga dengan kata kunci seperti "gejala saya..."
+                if (!nameFound && transcript.length > 0) { // Jika bukan nama dan ada transkrip
+                    symptomsField.value = transcript; // Gunakan transkrip asli dengan kapitalisasi dari user
+                    symptomsFound = true;
+                    voiceStatusSpan.textContent = `Symptoms set: "${symptomsField.value}".`;
+                }
+
+                // Otomatis isi lokasi dan kirim jika gejala sudah terisi melalui suara
+                // dan nama juga sudah terisi (baik manual maupun suara)
+                if (symptomsFound && nameField.value) {
+                    voiceStatusSpan.textContent = "Symptoms recorded. Auto-filling location and submitting...";
+                    console.log("Symptoms and name found, proceeding to auto-submit.");
+                    autoLocateAndSubmit();
+                } else if (nameFound && !symptomsField.value) {
+                    voiceStatusSpan.textContent = `Name set. Speak your symptoms or click "Stop Listening" then "Start Voice Input" again to describe symptoms.`;
+                } else if (!nameFound && !symptomsFound && transcript.length > 0) {
+                    voiceStatusSpan.textContent = `Could not understand command from: "${transcript}". Try 'My name is [Your Name]' or describe symptoms.`;
+                } else if (transcript.length === 0) {
+                    voiceStatusSpan.textContent = "Did not hear anything clearly.";
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                voiceStatusSpan.textContent = `Error: ${event.error}. Please try again.`;
+                isRecognizing = false;
+                voiceCommandBtn.textContent = "Start Voice Input";
+                voiceCommandBtn.style.backgroundColor = "#28a745"; // Kembali ke warna hijau
+            };
+
+            recognition.onend = () => {
+                isRecognizing = false;
+                voiceCommandBtn.textContent = "Start Voice Input";
+                voiceCommandBtn.style.backgroundColor = "#28a745"; // Kembali ke warna hijau
+                // Jangan otomatis set status "Listening ended" jika onresult sudah menangani auto-submit
+                if (!symptomsField.value || !nameField.value) { // Hanya set jika belum auto-submit
+                     // voiceStatusSpan.textContent = "Voice input ended. Click to start again.";
+                }
+                console.log("Voice recognition ended.");
+            };
+
+            voiceCommandBtn.addEventListener('click', () => {
+                if (!recognition) return;
+                if (isRecognizing) {
+                    recognition.stop(); // Ini akan memicu onend
+                } else {
+                    recognition.lang = voiceLangSelect.value; // Pastikan bahasa terbaru yang diambil
+                    try {
+                        recognition.start();
+                    } catch(e) {
+                        console.error("Error trying to start recognition (possibly already active or ended then re-clicked too fast):", e);
+                        voiceStatusSpan.textContent = "Could not start. Please wait a moment and try again.";
+                        // Reset state jika perlu
+                        isRecognizing = false; 
+                        voiceCommandBtn.textContent = "Start Voice Input";
+                        voiceCommandBtn.style.backgroundColor = "#28a745";
+                    }
+                }
+            });
+
+        } else {
+            console.error("Speech Recognition API not supported in this browser.");
+            if(voiceCommandBtn) voiceCommandBtn.disabled = true;
+            if(voiceStatusSpan) voiceStatusSpan.textContent = "Voice input not supported by this browser.";
+        }
+
+        function autoLocateAndSubmit() {
+            voiceStatusSpan.textContent = "Attempting to get your location...";
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        latitudeField.value = position.coords.latitude.toFixed(6);
+                        longitudeField.value = position.coords.longitude.toFixed(6);
+                        console.log("Location auto-filled:", latitudeField.value, longitudeField.value);
+                        voiceStatusSpan.textContent = "Location found. Submitting report...";
+                        emergencyForm.requestSubmit(); // Memicu event submit form
+                    },
+                    (error) => {
+                        console.error("Error getting location automatically:", error.message);
+                        voiceStatusSpan.textContent = `Location error: ${error.message}. Submitting without auto-location. Please fill location manually if needed.`;
+                        // Tetap submit, tapi lokasi mungkin default atau yang diisi sebelumnya.
+                        // Isi dengan nilai default jika error, agar backend tidak error karena field kosong
+                        if (!latitudeField.value) latitudeField.value = -6.2088; 
+                        if (!longitudeField.value) longitudeField.value = 106.8456; 
+                        emergencyForm.requestSubmit();
+                    },
+                    { timeout: 10000, enableHighAccuracy: true } 
+                );
+            } else {
+                console.log("Geolocation not supported by this browser. Submitting form without auto-location.");
+                voiceStatusSpan.textContent = "Geolocation not supported. Submitting report... Please fill location manually if needed.";
+                if (!latitudeField.value) latitudeField.value = -6.2088; 
+                if (!longitudeField.value) longitudeField.value = 106.8456; 
+                emergencyForm.requestSubmit();
+            }
+        }
+
+        // --- EVENT LISTENER UNTUK SUBMIT FORM (Peta Dihapus) ---
+        document.getElementById('emergencyForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Tetap penting
+            document.getElementById('loading').style.display = 'block';
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'none'; 
+
+            let latInput = document.getElementById('latitude').value;
+            let lonInput = document.getElementById('longitude').value;
+
+            if (!latInput || !lonInput) { // Pastikan lokasi terisi, jika tidak, set default
+                latInput = -6.2088; 
+                lonInput = 106.8456; 
+                document.getElementById('latitude').value = latInput;
+                document.getElementById('longitude').value = lonInput;
+                console.log("Location was not filled for form submit, using example coordinates.");
+            }
+
+            const formData = {
+                name: document.getElementById('name').value,
+                symptoms: document.getElementById('symptoms').value,
+                latitude: parseFloat(latInput),
+                longitude: parseFloat(lonInput)
+            };
+
+            try { 
+                const response = await fetch('/api/orchestrate_emergency_response', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', },
+                    body: JSON.stringify(formData),
+                });
+                
+                document.getElementById('loading').style.display = 'none';
+                resultsDiv.style.display = 'block';
+
+                if (!response.ok) {
+                    // ... (logika penanganan error respons tetap sama) ...
+                    let errorText = `Failed to send report. Server responded with status: ${response.status}`;
+                    // (Sisa logika error handling yang sudah ada sebelumnya)
+                    if (response.headers.get("content-type") && response.headers.get("content-type").includes("application/json")) {
+                        try {
+                            const errorData = await response.json(); 
+                            errorText = `${errorData.error || 'Failed to send report.'} (Status: ${response.status})`;
+                        } catch (jsonError) { /* ... */ }
+                    } else { /* ... */ }
+                    resultsDiv.innerHTML = `<h2>Error!</h2><p>${errorText}</p>`;
+                    return;
+                }
+
+                const data = await response.json(); 
+
+                // Update UI dengan data yang diterima (bagian peta dihapus)
+                document.getElementById('resName').textContent = data.userName;
+                document.getElementById('resUserLat').textContent = data.userLocation.latitude.toFixed(6);
+                document.getElementById('resUserLon').textContent = data.userLocation.longitude.toFixed(6);
+                document.getElementById('resAilment').textContent = data.ailmentGuess;
+                
+                const dangerLevelSpan = document.getElementById('resDangerLevel');
+                dangerLevelSpan.textContent = data.dangerLevel;
+                dangerLevelSpan.className = ''; 
+                
+                if (data.dangerLevel && data.dangerLevel.includes("CRITICAL")) dangerLevelSpan.classList.add('danger-CRITICAL');
+                else if (data.dangerLevel && data.dangerLevel.includes("EMERGENCY")) dangerLevelSpan.classList.add('danger-EMERGENCY');
+                else if (data.dangerLevel && data.dangerLevel.includes("URGENT")) dangerLevelSpan.classList.add('danger-URGENT');
+                else if (data.dangerLevel) dangerLevelSpan.classList.add('danger-CONSULT_DOCTOR'); 
+
+                document.getElementById('resETA').textContent = data.ambulanceETA || "N/A"; 
+
+                if (data.hospitalInfo && typeof data.hospitalInfo === 'object') {
+                    document.getElementById('resHospitalName').textContent = data.hospitalInfo.name || "N/A";
+                    document.getElementById('resHospitalAddress').textContent = data.hospitalInfo.address || "N/A";
+                    document.getElementById('resHospitalLat').textContent = data.hospitalInfo.latitude ? data.hospitalInfo.latitude.toFixed(6) : "N/A";
+                    document.getElementById('resHospitalLon').textContent = data.hospitalInfo.longitude ? data.hospitalInfo.longitude.toFixed(6) : "N/A";
+                    document.getElementById('resRouteInfo').textContent = data.routeInfo || "Route information not available.";
+                } else {
+                    document.getElementById('resHospitalName').textContent = "N/A";
+                    document.getElementById('resHospitalAddress').textContent = "N/A";
+                    document.getElementById('resHospitalLat').textContent = "N/A";
+                    document.getElementById('resHospitalLon').textContent = "N/A";
+                    document.getElementById('resRouteInfo').textContent = "No hospital referral made or data unavailable.";
+                }
+                
+                // Bagian updateMapWithResults() DIHAPUS karena peta dilupakan untuk saat ini
+                // if (mapInitialized) {
+                //    updateMapWithResults(data);
+                // } else { ... }
+
+            } catch (error) { 
+                document.getElementById('loading').style.display = 'none';
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = `<h2>Error!</h2><p>An error occurred: ${error.message}</p>`;
+                console.error('Error in form submission process:', error);
+            }
+        });
+    </script>
+</body>
+</html>
+
+        </form>
+        <div id="loading">Processing report, please wait... <span class="spinner"></span></div>
+
+        <div id="results" class="results" style="display:none;">
+            <h2>Analysis Results (Simulation):</h2>
+            <p><strong>User Name:</strong> <span id="resName"></span></p>
+            <p><strong>User Location:</strong> Lat: <span id="resUserLat"></span>, Lon: <span id="resUserLon"></span></p>
+            <p><strong>Condition Indication:</strong> <span id="resAilment"></span></p>
+            <p><strong>Emergency Level:</strong> <span id="resDangerLevel"></span></p>
+            <p><strong>Estimated Ambulance Arrival:</strong> <span id="resETA"></span></p>
+            <hr>
+            <h3>Referral Hospital (Simulation):</h3>
+            <p><strong>Hospital Name:</strong> <span id="resHospitalName"></span></p>
+            <p><strong>Hospital Address:</strong> <span id="resHospitalAddress"></span></p>
+            <p><strong>Hospital Location:</strong> Lat: <span id="resHospitalLat"></span>, Lon: <span id="resHospitalLon"></span></p>
+            <hr>
+            <h3>Route Information (Simulation):</h3>
+            <p id="resRouteInfo"></p>
+            <div id="map-container" style="background-color: grey; width: 600px; height: 400px;">
+                <iframe
+                    width="100%"  height="100%" frameborder="0"
+                    style="border:0"
+                src="https://www.google.com/maps/@-6.1989576,106.7824544,13z?entry=ttu&g_ep=EgoyMDI1MDUxMi4wIKXMDSoASAFQAw%3D%3D"
+        allowfullscreen="">
+    </iframe>
+</div>
+        </div>
+    </div>
+
+    <script>
+        let map; 
+        let userMarker, hospitalMarker;
+        let directionsService;
+        let directionsRenderer;
+        let mapInitialized = false;
+
+        async function initMap() {
+            console.log("initMap function started...");
+            try {
+                const { Map } = await google.maps.importLibrary("maps");
+                const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+                
+                directionsService = new google.maps.DirectionsService();
+                directionsRenderer = new google.maps.DirectionsRenderer();
+
+                const defaultLocation = { lat: -6.2088, lng: 106.8456 };
+                const mapElement = document.getElementById("map");
+
+                if (mapElement) {
+                    map = new Map(mapElement, {
+                        zoom: 12,
+                        center: defaultLocation,
+                        mapId: "MOVE_AI_MAP_ID" 
+                    });
+                    directionsRenderer.setMap(map);
+                    mapInitialized = true;
+                    console.log("Google Maps API and libraries loaded. Map initialized.");
+                    if (mapElement) mapElement.textContent = ''; 
+                }
+            } catch (e) {
+                console.error("Error initializing map:", e);
+                const mapElement = document.getElementById("map");
+                if(mapElement) mapElement.textContent = "Error loading map. Please check API key and console.";
+            }
+        }
+
+        document.getElementById('getLocationBtn').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+                    document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+                    if (mapInitialized && map) { 
+                        const newCenter = { lat: position.coords.latitude, lng: position.coords.longitude };
+                        map.setCenter(newCenter);
+                        map.setZoom(15);
+                    }
+                }, function(error) {
+                    alert('Could not get automatic location: ' + error.message + "\nPlease fill manually or use example values.");
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        });
+        
+async function updateMapWithResults(data) {
+    console.log("updateMapWithResults called with data:", data); 
+    if (!mapInitialized || !map || typeof google === 'undefined' || !google.maps.DirectionsService) { // Pastikan google.maps.DirectionsService juga ada
+        console.error("Map components not ready for updateMapWithResults.");
+        return;
+    }
+
+    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+    const userLocation = { 
+        lat: data.userLocation.latitude, 
+        lng: data.userLocation.longitude 
+    };
+
+    // Tambahkan validasi koordinat pengguna
+    if (typeof userLocation.lat !== 'number' || typeof userLocation.lng !== 'number') {
+        console.error("Invalid userLocation coordinates:", userLocation);
+        return; // Jangan lanjutkan jika koordinat pengguna tidak valid
+    }
+
+    if (userMarker) userMarker.map = null; 
+    if (hospitalMarker) hospitalMarker.map = null;
+    if (directionsRenderer) directionsRenderer.setDirections({routes: []}); // Pastikan directionsRenderer ada
+
+    map.setCenter(userLocation); 
+    map.setZoom(14); 
+
+    userMarker = new AdvancedMarkerElement({
+        map: map,
+        position: userLocation,
+        title: data.userName || "Your Location"
+    });
+    console.log("User marker created at:", userLocation); // Log pembuatan marker
+
+    if (data.hospitalInfo && typeof data.hospitalInfo === 'object' && 
+        typeof data.hospitalInfo.latitude === 'number' && 
+        typeof data.hospitalInfo.longitude === 'number') { // Validasi lebih ketat
+
+        const hospitalLocation = { 
+            lat: data.hospitalInfo.latitude, 
+            lng: data.hospitalInfo.longitude 
+        };
+
+        hospitalMarker = new AdvancedMarkerElement({
+            map: map,
+            position: hospitalLocation,
+            title: data.hospitalInfo.name
+        });
+        console.log("Hospital marker created at:", hospitalLocation); // Log
+
+        const request = {
+            origin: userLocation,
+            destination: hospitalLocation,
+            travelMode: google.maps.TravelMode.DRIVING
+        };
+
+        if (directionsService) { // Pastikan directionsService ada
+            directionsService.route(request, (result, status) => {
+                if (status == 'OK') {
+                    if (directionsRenderer) directionsRenderer.setDirections(result);
+                    console.log("Route successfully drawn."); // Log
+                } else {
+                    window.alert('Route request failed: ' + status);
+                    console.error('Directions request failed due to ' + status, result);
+                }
+            });
+        } else {
+            console.error("DirectionsService not initialized.");
+        }
+    } else {
+        console.log("No valid hospital data to display marker/route for.");
+    }
+}
+
+        document.getElementById('emergencyForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            document.getElementById('loading').style.display = 'block';
+            // Sembunyikan hasil sebelumnya sebelum request baru
+            const resultsDiv = document.getElementById('results'); // Deklarasikan resultsDiv sekali di sini
+            resultsDiv.style.display = 'none'; 
+
+
+            let latInput = document.getElementById('latitude').value;
+            let lonInput = document.getElementById('longitude').value;
+
+            if (!latInput || !lonInput) {
+                latInput = -6.2088; 
+                lonInput = 106.8456; 
+                document.getElementById('latitude').value = latInput;
+                document.getElementById('longitude').value = lonInput;
+                console.log("Location not filled, using example coordinates for Central Jakarta for demo.");
+            }
+
+            const formData = {
+                name: document.getElementById('name').value,
+                symptoms: document.getElementById('symptoms').value,
+                latitude: parseFloat(latInput),
+                longitude: parseFloat(lonInput)
+            };
+
+            try { 
+                const response = await fetch('/api/orchestrate_emergency_response', { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+                
+                document.getElementById('loading').style.display = 'none';
+                resultsDiv.style.display = 'block'; // Gunakan resultsDiv yang sudah dideklarasikan
+
+                if (!response.ok) {
+                    let errorText = `Failed to send report. Server responded with status: ${response.status}`;
+                    if (response.headers.get("content-type") && response.headers.get("content-type").includes("application/json")) {
+                        try {
+                            const errorData = await response.json(); 
+                            errorText = `${errorData.error || 'Failed to send report.'} (Status: ${response.status})`;
+                        } catch (jsonError) {
+                            console.error("Could not parse error response as JSON:", jsonError);
+                            // Fallback ke membaca sebagai teks jika parsing JSON gagal
+                            errorText = await response.text(); 
+                        }
+                    } else {
+                        errorText = await response.text(); 
+                        console.error("Server response was not JSON:", errorText)
+                    }
+                    resultsDiv.innerHTML = `<h2>Error!</h2><p>${errorText}</p>`;
+                    return;
+                }
+
+                const data = await response.json(); 
+
+                document.getElementById('resName').textContent = data.userName;
+                document.getElementById('resUserLat').textContent = data.userLocation.latitude.toFixed(6);
+                document.getElementById('resUserLon').textContent = data.userLocation.longitude.toFixed(6);
+                document.getElementById('resAilment').textContent = data.ailmentGuess;
+                
+                const dangerLevelSpan = document.getElementById('resDangerLevel');
+                dangerLevelSpan.textContent = data.dangerLevel;
+                dangerLevelSpan.className = ''; 
+                
+                if (data.dangerLevel && data.dangerLevel.includes("CRITICAL")) dangerLevelSpan.classList.add('danger-CRITICAL');
+                else if (data.dangerLevel && data.dangerLevel.includes("EMERGENCY")) dangerLevelSpan.classList.add('danger-EMERGENCY');
+                else if (data.dangerLevel && data.dangerLevel.includes("URGENT")) dangerLevelSpan.classList.add('danger-URGENT');
+                else if (data.dangerLevel) dangerLevelSpan.classList.add('danger-CONSULT_DOCTOR'); 
+
+                document.getElementById('resETA').textContent = data.ambulanceETA || "N/A"; 
+
+                if (data.hospitalInfo && typeof data.hospitalInfo === 'object') { // Pastikan hospitalInfo adalah objek
+                    document.getElementById('resHospitalName').textContent = data.hospitalInfo.name || "N/A";
+                    document.getElementById('resHospitalAddress').textContent = data.hospitalInfo.address || "N/A";
+                    document.getElementById('resHospitalLat').textContent = data.hospitalInfo.latitude ? data.hospitalInfo.latitude.toFixed(6) : "N/A";
+                    document.getElementById('resHospitalLon').textContent = data.hospitalInfo.longitude ? data.hospitalInfo.longitude.toFixed(6) : "N/A";
+                } else {
+                    document.getElementById('resHospitalName').textContent = "N/A";
+                    document.getElementById('resHospitalAddress').textContent = "N/A";
+                    document.getElementById('resHospitalLat').textContent = "N/A";
+                    document.getElementById('resHospitalLon').textContent = "N/A";
+                }
+                document.getElementById('resRouteInfo').textContent = data.routeInfo || "Route information not available.";
+                
+                if (mapInitialized) {
+                    updateMapWithResults(data);
+                } else {
+                    console.warn("Map not ready when data received, will attempt to update after map is ready.");
+                    const checkMapInterval = setInterval(() => {
+                        if (mapInitialized) {
+                            updateMapWithResults(data);
+                            clearInterval(checkMapInterval);
+                        }
+                    }, 500);
+                }
+
+            } catch (error) { 
+                document.getElementById('loading').style.display = 'none';
+                resultsDiv.style.display = 'block'; // Gunakan resultsDiv yang sudah dideklarasikan
+                resultsDiv.innerHTML = `<h2>Error!</h2><p>An error occurred while contacting the server or processing the response: ${error.message}</p><p>Check the browser console for more details.</p>`;
+                console.error('Error in form submission process:', error);
+            }
+        });
+    </script>
+</body>
+</html>
