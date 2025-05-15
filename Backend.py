@@ -6,6 +6,7 @@ import googlemaps # For Google Maps API
 import json
 
 app = Flask(__name__)
+Scss(app)
 
 # --- GEMINI AI CONFIGURATION ---
 # (Keep your existing Gemini configuration - API Key and Model)
@@ -109,6 +110,9 @@ def analyze_symptoms_with_gemini_tool(symptoms_text):
         return json.loads(cleaned_response)
     except Exception as e:
         return {"error": f"Symptom analysis AI error: {str(e)}"}
+
+        def __repr__(self) -> str:
+        return f"task (self.id)"
 
 
 @app.route('/')
